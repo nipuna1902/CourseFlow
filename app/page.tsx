@@ -1,69 +1,148 @@
-import Image from "next/image";
+import { createClient } from '@/lib/supabase/server'
+import BuyButton from '@/components/BuyButton'
+import Link from 'next/link'
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient()
+
+  const { data: courses } = await supabase
+    .from('courses')
+    .select('*')
+    .eq('is_published', true)
+    .order('created_at', { ascending: true })
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <main className="min-h-screen bg-white text-[#0a0a0a]">
+
+      {/* Navbar */}
+      <nav className="border-b border-[#e0dedc]">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+
+          <Link href="/" className="text-xl font-semibold tracking-tight">
+            CourseFlow
+          </Link>
+
+          <div className="flex items-center gap-6 text-sm">
+            <Link href="/login" className="hover:underline">
+              Login
+            </Link>
+
+            <Link
+              href="/register"
+              className="bg-[#0a0a0a] px-5 py-3 text-white hover:bg-[#333]"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              Get Started
+            </Link>
+          </div>
+
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <section className="mx-auto max-w-7xl px-6 py-24 text-center">
+
+        <p className="mb-5 text-sm uppercase tracking-[0.2em] text-[#535250]">
+          Learn. Grow. Build.
+        </p>
+
+        <h1 className="mx-auto max-w-4xl text-5xl font-normal leading-tight tracking-[-0.04em] md:text-7xl">
+          Skills that move
+          <br />
+          you forward.
+        </h1>
+
+        <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-[#535250]">
+          Explore thoughtfully designed courses and develop
+          skills that help you achieve your goals.
+        </p>
+
+        <Link
+          href="#courses"
+          className="mt-8 inline-block bg-[#0a0a0a] px-8 py-4 text-white hover:bg-[#333]"
+        >
+          Explore Courses
+        </Link>
+
+      </section>
+
+      {/* Courses */}
+      <section
+        id="courses"
+        className="mx-auto max-w-7xl px-6 pb-24"
+      >
+
+        <div className="mb-12">
+          <p className="text-sm text-[#535250]">OUR COURSES</p>
+
+          <h2 className="mt-3 text-4xl font-normal tracking-tight">
+            Explore what you can learn.
+          </h2>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-3">
+
+          {courses?.map((course) => (
+            <div
+              key={course.id}
+              className="border border-[#e0dedc] p-6 transition hover:border-[#0a0a0a]"
             >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+
+              <div className="mb-6 flex h-40 items-center justify-center bg-[#e9e8e7]">
+                <span className="text-sm text-[#535250]">
+                  Course Preview
+                </span>
+              </div>
+
+              <h3 className="text-xl font-medium">
+                {course.title}
+              </h3>
+
+              <p className="mt-3 min-h-16 text-sm leading-relaxed text-[#535250]">
+                {course.description ||
+                  'Explore this course and develop new skills.'}
+              </p>
+
+              <div className="mt-6 flex items-center justify-between">
+
+                <span className="text-xl font-medium">
+                  ₹{(course.price_paise / 100).toLocaleString('en-IN')}
+                </span>
+
+              </div>
+
+              <div className="mt-5">
+                <BuyButton
+                  courseId={course.id}
+                  title={course.title}
+                />
+              </div>
+
+            </div>
+          ))}
+
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-[#e0dedc]">
+        <div className="mx-auto max-w-7xl px-6 py-8">
+
+          <div className="flex flex-col justify-between gap-4 sm:flex-row">
+
+            <p className="font-medium">
+              CourseFlow
+            </p>
+
+            <p className="text-sm text-[#949189]">
+              © 2026 CourseFlow. All rights reserved.
+            </p>
+
+          </div>
+
         </div>
-      </main>
-    </div>
-  );
+      </footer>
+
+    </main>
+  )
 }
