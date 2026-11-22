@@ -30,11 +30,31 @@ export default function BuyButton({ courseId, title }: { courseId: string; title
       currency: data.currency,
       name: 'CourseFlow',
       description: title,
-      handler: (response: any) => {
-        // razorpay_payment_id, razorpay_order_id, razorpay_signature
-        // For now just log it. This is NOT proof of payment yet; next step is server verification.
-        console.log('checkout success (unverified):', response)
-        setLoading(false)
+      handler: async (response: any) => {
+        try {
+          const verifyRes = await fetch('/api/payments/verify', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(response),
+          })
+
+          const result = await verifyRes.json()
+
+          if (!verifyRes.ok) {
+            alert(result.error || 'We could not confirm your payment yet. If money was deducted, your access will be added shortly.')
+            return
+          }
+
+          alert('Payment successful! You are now enrolled.')
+
+          window.location.reload()
+        } catch (error) {
+          alert('Something went wrong while verifying payment')
+        } finally {
+          setLoading(false)
+        }
       },
       modal: { ondismiss: () => setLoading(false) },
     })

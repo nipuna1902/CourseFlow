@@ -1,15 +1,29 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/auth'
 import BuyButton from '@/components/BuyButton'
 import Link from 'next/link'
 
 export default async function Home() {
   const supabase = await createClient()
+  const user = await getCurrentUser()
 
   const { data: courses } = await supabase
     .from('courses')
     .select('*')
     .eq('is_published', true)
     .order('created_at', { ascending: true })
+
+  // courses this student already owns
+  let ownedIds = new Set<string>()
+  if (user) {
+    const { data, error } = await supabase
+      .from('enrollments')
+      .select('course_id')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+    if (error) console.error('enrollments read failed', error)
+    ownedIds = new Set((data ?? []).map((e) => e.course_id))
+  }
 
   return (
     <main className="min-h-screen bg-white text-[#0a0a0a]">
@@ -23,16 +37,24 @@ export default async function Home() {
           </Link>
 
           <div className="flex items-center gap-6 text-sm">
-            <Link href="/login" className="hover:underline">
-              Login
-            </Link>
+            {user ? (
+              <Link href="/account" className="hover:underline">
+                My Account
+              </Link>
+            ) : (
+              <>
+                <Link href="/login" className="hover:underline">
+                  Login
+                </Link>
 
-            <Link
-              href="/register"
-              className="bg-[#0a0a0a] px-5 py-3 text-white hover:bg-[#333]"
-            >
-              Get Started
-            </Link>
+                <Link
+                  href="/register"
+                  className="bg-[#0a0a0a] px-5 py-3 text-white hover:bg-[#333]"
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
           </div>
 
         </div>
@@ -111,10 +133,26 @@ export default async function Home() {
               </div>
 
               <div className="mt-5">
-                <BuyButton
-                  courseId={course.id}
-                  title={course.title}
-                />
+                {ownedIds.has(course.id) ? (
+                  <Link
+                    href={`/learn/${course.id}`}
+                    className="block border border-[#0a0a0a] px-5 py-3 text-center text-sm hover:bg-[#0a0a0a] hover:text-white"
+                  >
+                    ✓ Enrolled · Start learning
+                  </Link>
+                ) : user ? (
+                  <BuyButton
+                    courseId={course.id}
+                    title={course.title}
+                  />
+                ) : (
+                  <Link
+                    href="/login"
+                    className="block border border-[#e0dedc] px-5 py-3 text-center text-sm hover:border-[#0a0a0a]"
+                  >
+                    Sign in to buy
+                  </Link>
+                )}
               </div>
 
             </div>
