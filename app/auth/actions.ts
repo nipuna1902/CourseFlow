@@ -2,7 +2,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
-export async function register(_: unknown, formData: FormData) {
+export async function register(prevState: unknown, formData: FormData) {
   const supabase = await createClient()
   const { error } = await supabase.auth.signUp({
     email: String(formData.get('email')),
@@ -13,7 +13,7 @@ export async function register(_: unknown, formData: FormData) {
   redirect('/account')
 }
 
-export async function login(_: unknown, formData: FormData) {
+export async function login(prevState: unknown, formData: FormData) {
   const supabase = await createClient()
   const { error } = await supabase.auth.signInWithPassword({
     email: String(formData.get('email')),
@@ -24,6 +24,7 @@ export async function login(_: unknown, formData: FormData) {
 }
 
 export async function logout() {
+  console.log("SUPABASE URL:", process.env.NEXT_PUBLIC_SUPABASE_URL)
   const supabase = await createClient()
   await supabase.auth.signOut()
   redirect('/login')
