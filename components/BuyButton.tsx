@@ -6,6 +6,18 @@ declare global {
   interface Window { Razorpay: any }
 }
 
+async function report(orderId: string, outcome: 'cancelled' | 'failed', reason?: string) {
+  try {
+    await fetch('/api/payments/report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId, outcome, reason }),
+    })
+  } catch {
+    // best effort: the webhook is the authoritative source for failures
+  }
+}
+
 export default function BuyButton({ courseId, title }: { courseId: string; title: string }) {
   const [loading, setLoading] = useState(false)
 
@@ -23,6 +35,8 @@ export default function BuyButton({ courseId, title }: { courseId: string; title
       return
     }
 
+    let finished = false // becomes true once checkout reports success
+
     const rzp = new window.Razorpay({
       key: data.keyId,
       order_id: data.orderId,
@@ -31,34 +45,42 @@ export default function BuyButton({ courseId, title }: { courseId: string; title
       name: 'CourseFlow',
       description: title,
       handler: async (response: any) => {
+        finished = true
         try {
           const verifyRes = await fetch('/api/payments/verify', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(response),
           })
-
           const result = await verifyRes.json()
 
           if (!verifyRes.ok) {
-            alert(result.error || 'We could not confirm your payment yet. If money was deducted, your access will be added shortly.')
+            alert(
+              result.error ||
+              'We could not confirm your payment yet. If money was deducted, your access will be added shortly.'
+            )
             return
           }
 
           alert('Payment successful! You are now enrolled.')
-
           window.location.reload()
-        } catch (error) {
+        } catch {
           alert('Something went wrong while verifying payment')
         } finally {
           setLoading(false)
         }
       },
-      modal: { ondismiss: () => setLoading(false) },
+      modal: {
+        ondismiss: () => {
+          if (!finished) report(data.orderId, 'cancelled')
+          setLoading(false)
+        },
+      },
     })
-    rzp.on('payment.failed', (r: any) => console.log('payment failed:', r.error))
+
+    rzp.on('payment.failed', (r: any) => {
+      report(data.orderId, 'failed', r?.error?.description)
+    })
     rzp.open()
   }
 

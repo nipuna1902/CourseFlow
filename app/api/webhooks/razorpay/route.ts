@@ -35,6 +35,20 @@ async function handleEvent(type: string, event: any) {
     return
   }
 
+  // NEW: bank authorized the payment but it isn't captured yet: waiting, not failed
+  if (type === 'payment.authorized') {
+    const orderId = payment?.order_id
+    if (!orderId) throw new NoRetryError('missing order id')
+
+    const { error } = await supabaseAdmin
+      .from('payments')
+      .update({ status: 'pending', updated_at: new Date().toISOString() })
+      .eq('razorpay_order_id', orderId)
+      .in('status', ['created', 'failed', 'cancelled'])
+    if (error) throw new Error(error.message)
+    return
+  }
+
   // failure event: record it, but never overwrite a payment that is already paid
   if (type === 'payment.failed') {
     const orderId = payment?.order_id

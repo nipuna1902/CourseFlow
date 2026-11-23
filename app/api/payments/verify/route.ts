@@ -60,11 +60,22 @@ export async function POST(req: Request) {
 
   if (error) {
     console.error('fulfill_payment failed', error)
+
+    // the signature was valid, so Razorpay really took the money.
+    // make that visible instead of leaving it as "not completed".
+    await supabaseAdmin
+      .from('payments')
+      .update({
+        status: 'pending',
+        failure_reason: 'verified, but enrollment processing failed',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', payment.id)
+      .in('status', ['created', 'failed', 'cancelled'])
+
     return NextResponse.json(
       { error: 'Payment received, but we could not finish enrollment yet' },
       { status: 500 }
     )
   }
-
-  return NextResponse.json({ success: true, enrollmentId })
 }
