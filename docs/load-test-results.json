@@ -1,0 +1,68 @@
+{
+  "run": "mwsv2pjv",
+  "url": "http://localhost:3000/api/webhooks/razorpay",
+  "course": "Full Stack Web Development",
+  "requests": 142,
+  "burstSeconds": 3.9,
+  "latencyMs": {
+    "p50": 3019,
+    "p95": 3684,
+    "max": 3881
+  },
+  "firstAttemptStatusByGroup": {
+    "A-students": {
+      "200": 100
+    },
+    "B-hot-student": {
+      "200": 40
+    },
+    "C-double-purchase": {
+      "200": 2
+    }
+  },
+  "duplicatesAcknowledgedWithoutReprocessing": 3,
+  "firstAttemptFailures": [],
+  "afterRedelivery": [],
+  "checks": [
+    {
+      "name": "A: all student payments marked paid",
+      "pass": true,
+      "detail": "100/100"
+    },
+    {
+      "name": "A: every student has exactly one active enrollment",
+      "pass": true,
+      "detail": "100/100"
+    },
+    {
+      "name": "No enrollment points at another student's payment",
+      "pass": true,
+      "detail": "102 checked"
+    },
+    {
+      "name": "B: hot student has 1 paid payment and exactly 1 enrollment",
+      "pass": true,
+      "detail": "40 deliveries"
+    },
+    {
+      "name": "C: double purchase: 2 paid, 1 active enrollment, 1 flagged needs_review",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "One audit \"granted\" row per enrolled student",
+      "pass": true,
+      "detail": "102 rows"
+    },
+    {
+      "name": "webhook_events: exactly one row per distinct event id",
+      "pass": true,
+      "detail": "123 rows (expected 123)"
+    },
+    {
+      "name": "No event left in failed/received state",
+      "pass": true,
+      "detail": "0 not processed"
+    }
+  ]
+}
