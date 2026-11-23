@@ -15,3 +15,13 @@ export async function requireAdmin() {
     .from('profiles').select('role').eq('id', user.id).single()
   return data?.role === 'admin' ? user : null
 }
+
+export async function isAdminUser(userId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .maybeSingle()
+  return data?.role === 'admin'
+}

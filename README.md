@@ -30,7 +30,7 @@ Needs Node 20.6+, a Supabase project and a Razorpay account in Test Mode.
 1. `git clone` the repo, then `npm install`
 2. Copy `.env.example` to `.env` and fill in the values below
 3. In the Supabase SQL Editor run, in order: `supabase/migrations/0001_init.sql`, `0002_grants.sql`,
-   `0003_payment_fixes.sql`, `0004_admin_actions.sql`, then `supabase/seed.sql`
+   `0003_payment_fixes.sql`, `0004_admin_actions.sql`, `0005_seed.sql`
 4. Supabase → Authentication → Providers → Email: turn **Confirm email** off (demo convenience)
 5. `npm run dev` and open http://localhost:3000
 6. Make an admin: register, then run

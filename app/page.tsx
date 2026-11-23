@@ -1,11 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
-import { getCurrentUser } from '@/lib/auth'
+import { getCurrentUser, isAdminUser } from '@/lib/auth'
 import BuyButton from '@/components/BuyButton'
 import Link from 'next/link'
 
 export default async function Home() {
   const supabase = await createClient()
   const user = await getCurrentUser()
+  const showAdmin = user ? await isAdminUser(user.id) : false
 
   const { data: courses } = await supabase
     .from('courses')
@@ -38,9 +39,19 @@ export default async function Home() {
 
           <div className="flex items-center gap-6 text-sm">
             {user ? (
-              <Link href="/account" className="hover:underline">
-                My Account
-              </Link>
+              <>
+                {showAdmin && (
+                  <Link
+                    href="/admin"
+                    className="border border-[#0a0a0a] px-4 py-2 hover:bg-[#0a0a0a] hover:text-white"
+                  >
+                    Admin
+                  </Link>
+                )}
+                <Link href="/account" className="hover:underline">
+                  My Account
+                </Link>
+              </>
             ) : (
               <>
                 <Link href="/login" className="hover:underline">

@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { connection } from 'next/server'
-import { getCurrentUser } from '@/lib/auth'
+import { getCurrentUser, isAdminUser } from '@/lib/auth'
 import { logout } from '@/app/auth/actions'
 import { createClient } from '@/lib/supabase/server'
 import CourseCard from '@/components/CourseCard'
@@ -27,6 +27,7 @@ export default async function AccountPage() {
 
   const user = await getCurrentUser()
   if (!user) redirect('/login')
+  const showAdmin = await isAdminUser(user.id)
 
   const supabase = await createClient()
 
@@ -74,11 +75,21 @@ export default async function AccountPage() {
               CourseFlow
             </Link>
 
-            <form action={logout}>
-              <button className="border border-[#0a0a0a] px-4 py-2 text-[#0a0a0a] transition hover:bg-[#0a0a0a] hover:text-white">
-                Logout
-              </button>
-            </form>
+            <div className="flex items-center gap-4">
+              {showAdmin && (
+                <Link
+                  href="/admin"
+                  className="border border-[#0a0a0a] px-4 py-2 text-[#0a0a0a] transition hover:bg-[#0a0a0a] hover:text-white"
+                >
+                  Admin
+                </Link>
+              )}
+              <form action={logout}>
+                <button className="border border-[#0a0a0a] px-4 py-2 text-[#0a0a0a] transition hover:bg-[#0a0a0a] hover:text-white">
+                  Logout
+                </button>
+              </form>
+            </div>
 
           </div>
         </nav>
