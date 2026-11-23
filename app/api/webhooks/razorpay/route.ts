@@ -110,14 +110,15 @@ export async function POST(req: Request) {
       .eq('razorpay_event_id', eventId)
       .single()
 
-    if (existing?.status === 'processed') {
-      return NextResponse.json({ ok: true, duplicate: true }) // already done, acknowledge
-    }
-    // earlier attempt failed or crashed midway: process it again
+    // count every re-delivery of this event id (approximate if copies land at the same instant)
     await supabaseAdmin
       .from('webhook_events')
       .update({ attempts: (existing?.attempts ?? 1) + 1 })
       .eq('razorpay_event_id', eventId)
+
+    if (existing?.status === 'processed') {
+      return NextResponse.json({ ok: true, duplicate: true }) // already done, acknowledge
+    }
   }
 
   // 4. do the business work, then mark the event
