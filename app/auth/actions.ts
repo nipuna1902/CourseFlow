@@ -3,36 +3,38 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
-export async function register(formData: FormData) {
-  const supabase = await createClient()
+// On failure these return an error for the form to display (instead of putting it in the URL).
+// On success, redirect() ends the action and sends the student to their account.
 
+export async function register(_prev: unknown, formData: FormData) {
+  const email = String(formData.get('email') ?? '').trim()
+  const fullName = String(formData.get('full_name') ?? '').trim()
+  const password = String(formData.get('password') ?? '')
+
+  const supabase = await createClient()
   const { error } = await supabase.auth.signUp({
-    email: String(formData.get('email')),
-    password: String(formData.get('password')),
-    options: {
-      data: {
-        full_name: String(formData.get('full_name')),
-      },
-    },
+    email,
+    password,
+    options: { data: { full_name: fullName } },
   })
 
   if (error) {
-    redirect(`/register?error=${encodeURIComponent(error.message)}`)
+    // send back what they typed (never the password) so the form can refill it
+    return { error: error.message, email, full_name: fullName }
   }
 
   redirect('/account')
 }
 
-export async function login(formData: FormData) {
-  const supabase = await createClient()
+export async function login(_prev: unknown, formData: FormData) {
+  const email = String(formData.get('email') ?? '').trim()
+  const password = String(formData.get('password') ?? '')
 
-  const { error } = await supabase.auth.signInWithPassword({
-    email: String(formData.get('email')),
-    password: String(formData.get('password')),
-  })
+  const supabase = await createClient()
+  const { error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`)
+    return { error: error.message, email }
   }
 
   redirect('/account')

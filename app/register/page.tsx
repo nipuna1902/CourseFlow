@@ -1,7 +1,14 @@
+'use client'
+
 import Link from 'next/link'
+import { useActionState } from 'react'
 import { register } from '@/app/auth/actions'
 
+type FormState = { error?: string; email?: string; full_name?: string } | null
+
 export default function RegisterPage() {
+  const [state, formAction, pending] = useActionState<FormState, FormData>(register, null)
+
   return (
     <main className="min-h-screen bg-white text-[#0a0a0a]">
 
@@ -25,7 +32,16 @@ export default function RegisterPage() {
             Start learning something new today.
           </p>
 
-          <form action={register} className="mt-10 space-y-6">
+          <form action={formAction} className="mt-10 space-y-6">
+
+            {state?.error && (
+              <p
+                role="alert"
+                className="border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+              >
+                {state.error}
+              </p>
+            )}
 
             <div>
               <label className="mb-2 block text-sm">
@@ -36,6 +52,7 @@ export default function RegisterPage() {
                 type="text"
                 name="full_name"
                 required
+                defaultValue={state?.full_name ?? ''}
                 className="w-full border border-[#e0dedc] px-4 py-3 outline-none focus:border-[#0a0a0a]"
                 placeholder="Your full name"
               />
@@ -50,6 +67,7 @@ export default function RegisterPage() {
                 type="email"
                 name="email"
                 required
+                defaultValue={state?.email ?? ''}
                 className="w-full border border-[#e0dedc] px-4 py-3 outline-none focus:border-[#0a0a0a]"
                 placeholder="you@example.com"
               />
@@ -72,9 +90,10 @@ export default function RegisterPage() {
 
             <button
               type="submit"
-              className="w-full bg-[#0a0a0a] py-4 text-white hover:bg-[#333]"
+              disabled={pending}
+              className="w-full bg-[#0a0a0a] py-4 text-white hover:bg-[#333] disabled:opacity-60"
             >
-              Create Account
+              {pending ? 'Creating account…' : 'Create Account'}
             </button>
 
           </form>
