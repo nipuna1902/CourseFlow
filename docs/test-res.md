@@ -36,3 +36,10 @@ Results (142 requests, 3.9 s burst):
   simultaneous requests, so it reflects queueing, not production performance.
 
 Raw output: `docs/load-test-results.json`
+
+## Database rebuild check
+Ran `0001_init.sql` to `0004_admin_actions.sql` and `seed.sql` on a new empty Supabase project, then
+`supabase/tests/schema_check.sql`: 21/21 checks passed (signup trigger, idempotent payment fulfillment,
+duplicate-enrollment rejection, partial unique index, webhook event uniqueness, admin revoke/restore with audit,
+grants, row-level security for enrolled and non-enrolled students). The script runs inside one transaction that is
+rolled back on purpose, so it leaves no data behind.
