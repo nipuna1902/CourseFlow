@@ -5,7 +5,7 @@ only after the payment is verified on the server. It is built to stay correct wh
 repeated, delayed or concurrent.
 
 - **Live app:** https://course-flow-beta.vercel.app
-- **Repository:** [https://github.com/YOUR-USERNAME/CourseFlow]
+- **Repository:** [https://github.com/nipuna1902/CourseFlow]
 - **Test evidence:** [docs/test-results.md](docs/test-results.md), [docs/load-test-results.json](docs/load-test-results.json)
 
 Payments use Razorpay's test-mode card or UPI details, so no real money moves. Anyone can register
