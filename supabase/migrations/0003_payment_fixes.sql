@@ -1,4 +1,3 @@
--- 0003_payment_fixes.sql
 -- Changes applied after the initial tables: extra columns, duplicate-protection
 -- indexes, the idempotent fulfill_payment function, and role permissions.
 
@@ -68,7 +67,7 @@ begin
   values (v_payment.user_id, v_payment.course_id, v_payment.id, 'purchase', 'active')
   on conflict do nothing
   returning id into v_enrollment_id;
-
+  --why a student got access..history
   if v_enrollment_id is not null then
     insert into enrollment_audit (enrollment_id, student_id, course_id, admin_id, action, reason)
     values (v_enrollment_id, v_payment.user_id, v_payment.course_id, null, 'granted', 'payment verified');
@@ -82,8 +81,9 @@ begin
   end if;
   return v_enrollment_id;
 end $$;
-
+--The trusted server-side service_role can execute it
 revoke execute on function public.fulfill_payment(text, text) from public, anon, authenticated;
 grant execute on function public.fulfill_payment(text, text) to service_role;
+--rpc() means Remote Procedure Call...It lets your application call a PostgreSQL function through Supabase
 
 notify pgrst, 'reload schema';

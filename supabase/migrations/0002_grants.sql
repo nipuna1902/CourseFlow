@@ -1,6 +1,4 @@
--- 0002_grants.sql
--- Who may touch which table. Supabase does not grant table access by default,
--- so every permission is listed explicitly.
+-- Who may touch which table.
 
 -- Public catalogue: anyone may read (row-level policies still limit this to published courses)
 grant select on public.courses to anon, authenticated;

@@ -1,4 +1,3 @@
--- 0004_admin_actions.sql
 -- Revoke or restore access in ONE transaction: the status change and the audit row
 -- either both happen or neither does.
 

@@ -4,13 +4,12 @@ A course purchase and enrollment system: a student pays with Razorpay (Test Mode
 only after the payment is verified on the server. It is built to stay correct when requests are
 repeated, delayed or concurrent.
 
-- **Live app:** [https://course-flow-beta.vercel.app]
-- **Repository:** [https://github.com/nipuna1902/CourseFlow]
-- **Walkthrough video:** [LINK]
-- **Test evidence:** [docs/test-results.md](docs/test-results.md) and [docs/load-test-results.json](docs/load-test-results.json)
+- **Live app:** https://course-flow-beta.vercel.app
+- **Repository:** [https://github.com/YOUR-USERNAME/CourseFlow]
+- **Test evidence:** [docs/test-results.md](docs/test-results.md), [docs/load-test-results.json](docs/load-test-results.json)
 
-Demo student and admin logins are in the submission message, not in this public file.
-Pay with Razorpay's test-mode card or UPI details (see Razorpay's docs). No real money moves.
+Payments use Razorpay's test-mode card or UPI details, so no real money moves. Anyone can register
+(email confirmation is off for the demo). An admin account is made with the SQL in "Run locally".
 
 ## Stack
 Next.js 16 (App Router) · Tailwind CSS · Supabase Auth + PostgreSQL (RLS) · Razorpay Test Mode · Vercel
@@ -19,10 +18,10 @@ Next.js 16 (App Router) · Tailwind CSS · Supabase Auth + PostgreSQL (RLS) · R
 **Student:** register and sign in, browse courses, buy, see My Courses with access status,
 see payment history, open lessons (only with an active enrollment).
 
-**Admin (`/admin`):** payments split by status (successful, pending, failed/cancelled, not completed),
-enrollments, students, courses, a per-student access view, revoke/restore with a reason (recorded in
-an audit log), a "Needs attention" view (stuck payments, duplicate purchases, failed or repeated
-webhook events), and a "Re-check with Razorpay" recovery button.
+**Admin (`/admin`, with an Admin link in the navbar that only admins see):** payments split by status
+(successful, pending, failed/cancelled, not completed), enrollments, students, courses, a per-student
+access view, revoke/restore with a reason (recorded in an audit log), a "Needs attention" view (stuck
+payments, duplicate purchases, failed or repeated webhook events), and a "Re-check with Razorpay" recovery button.
 
 ## Run locally
 Needs Node 20.6+, a Supabase project and a Razorpay account in Test Mode.
@@ -30,7 +29,7 @@ Needs Node 20.6+, a Supabase project and a Razorpay account in Test Mode.
 1. `git clone` the repo, then `npm install`
 2. Copy `.env.example` to `.env` and fill in the values below
 3. In the Supabase SQL Editor run, in order: `supabase/migrations/0001_init.sql`, `0002_grants.sql`,
-   `0003_payment_fixes.sql`, `0004_admin_actions.sql`, `0005_seed.sql`
+   `0003_payment_fixes.sql`, `0004_admin_actions.sql`, `0005_seed.sql` (sample courses and lessons; run once)
 4. Supabase → Authentication → Providers → Email: turn **Confirm email** off (demo convenience)
 5. `npm run dev` and open http://localhost:3000
 6. Make an admin: register, then run
@@ -71,8 +70,7 @@ Razorpay cannot reach localhost, so locally the webhook is simulated:
    ignored. `payment.captured` / `order.paid` call `fulfill_payment`; `payment.authorized` sets `pending`;
    `payment.failed` sets `failed` but never overwrites a paid payment.
 5. **`fulfill_payment(order_id, payment_id)`** is one database transaction: it locks the payment row
-   (`FOR UPDATE`), marks it paid, inserts the enrollment with `ON CONFLICT DO NOTHING`, and writes an audit row.
-   The verify route and the webhook both call it, so whichever arrives first wins and the rest change nothing.
+   (`FOR UPDATE`), marks it paid, inserts the enrollment with `ON CONFLICT DO NOTHING`, and writes an audit row. The verify route and the webhook both call it, so whichever arrives first wins and the rest change nothing.
 
 | Payment status | Meaning | Grants access? |
 |---|---|---|
@@ -82,66 +80,53 @@ Razorpay cannot reach localhost, so locally the webhook is simulated:
 | `failed` / `cancelled` | declined / popup closed | no |
 
 ## Preventing duplicates and races
-- Partial unique index: **one `active` enrollment per (student, course)**. Revoked rows don't count,
-  so revoke, restore and re-purchase all work.
+- Partial unique index: **one `active` enrollment per (student, course)**. Revoked rows don't count, so revoke, restore and re-purchase all work.
 - Unique index: one enrollment per payment. Unique `razorpay_order_id` and `razorpay_payment_id`.
 - Unique `webhook_events.razorpay_event_id`: the database decides whether an event was already seen.
 - Row lock inside `fulfill_payment`: simultaneous calls for the same order queue up.
-- A student who pays twice for one course gets one enrollment; the second payment is recorded and flagged
-  `needs_review` (refund is a manual step in Razorpay).
+- A student who pays twice for one course gets one enrollment; the second payment is recorded and flagged `needs_review` (refund is a manual step in Razorpay).
 
 ## If payment succeeds but enrollment fails
-`fulfill_payment` is atomic, so the database never ends up half done. If it fails, the payment stays
-unpaid in our database (or `pending` when the verify route had already seen a valid signature) while the
-money is taken at Razorpay. Recovery:
+`fulfill_payment` is atomic, so the database never ends up half done. If it fails, the payment stays unpaid in our database (or `pending` when the verify route had already seen a valid signature) while the money is taken at Razorpay. Recovery:
 1. Razorpay retries the webhook until it gets a 2xx, and the retry runs the same function.
 2. Failures are written to `webhook_events` (status `failed` plus the error).
-3. The admin **Needs attention** tab lists stuck payments, with a **Re-check with Razorpay** button that fetches
-   the order's payments from Razorpay's API and runs the same idempotent function.
+3. The admin **Needs attention** tab lists stuck payments, with a **Re-check with Razorpay** button that fetches the order's payments from Razorpay's API and runs the same idempotent function.
 
 ## Access control
-- Every protected page and API route verifies the user with `getClaims()` on the server. Admin status is read
-  from `profiles.role` in the database, and `/admin` returns 404 to everyone else.
-- Row Level Security is on for every table. Students have **read-only** access to their own rows and no write
-  policy anywhere; all writes go through server code using the secret key, after the checks above.
+- Every protected page and API route verifies the user with `getClaims()` on the server. Admin status is read from `profiles.role` in the database, and `/admin` returns 404 to everyone else. The navbar Admin link is only a convenience; the server re-checks on every admin page and action.
+- Row Level Security is on for every table. Students have **read-only** access to their own rows and no write policy anywhere; all writes go through server code using the secret key, after the checks above.
 - `course_lessons` has an RLS policy that only returns rows when the student has an active enrollment.
 - `fulfill_payment` and `admin_set_enrollment_status` can only be executed by the server's service role.
 
 ## Database
-`profiles` (role) · `courses` · `course_lessons` · `payments` · `enrollments` · `enrollment_audit`
-(grant/revoke/restore history with the acting admin) · `webhook_events`. Payments and enrollments are
-separate tables linked by `enrollments.payment_id`, so money and access can be audited independently.
+`profiles` (role) · `courses` · `course_lessons` · `payments` · `enrollments` · `enrollment_audit` (grant/revoke/restore history with the acting admin) · `webhook_events`. Payments and enrollments are separate tables linked by `enrollments.payment_id`, so money and access can be audited independently. Migrations are in `supabase/migrations/` (applied by hand in the SQL Editor, in order).
 
 ## Tests
 | # | Scenario | Result |
 |---|---|---|
-| 1 | Student completes a test payment and gets access | [pass] |
-| 2 | Failed or cancelled payment grants nothing | [pass] |
-| 3 | Same webhook delivered more than once: one enrollment | [pass] |
-| 4 | Repeated purchase requests: no duplicate active enrollment | [pass] |
-| 5 | Two students buy the same course: each gets their own access | [pass] |
-| 6 | Student without enrollment is denied | [pass] |
-| 7 | 100 concurrent simulated requests | [pass: 8/8 checks, N failures] |
+| 1 | Student completes a test payment and gets access | [fill after running] |
+| 2 | Failed or cancelled payment grants nothing | [fill after running] |
+| 3 | Same webhook delivered more than once: one enrollment | Pass (signed event sent twice, one enrollment, one event row) |
+| 4 | Repeated purchase requests: no duplicate active enrollment | [fill after running] |
+| 5 | Two students buy the same course: each gets their own access | [fill after running] |
+| 6 | Student without enrollment is denied | [fill after running] |
+| 7 | 100 concurrent simulated requests | Pass locally: 142 requests, 0 first-attempt failures, 8/8 database checks |
+| + | Clean rebuild: migrations 0001 to 0005 on an empty project, then `supabase/tests/schema_check.sql` | Pass, 21/21 checks |
 
 Details and raw output are in `docs/`. Scripts: `scripts/send-webhook.mjs` (signed single event) and
 `scripts/load-test.mjs` (`... load-test.mjs cleanup` removes its test users).
 
-**What test 7 simulates:** 100 students whose payments confirm at the same moment, plus 40 concurrent
-deliveries for one student and one student paying twice, sent as correctly signed webhooks to the real endpoint.
-Students and unpaid payments are created directly in the database. Signature checks, deduplication, locking,
-`fulfill_payment` and the unique indexes all run for real. **What it does not simulate:** real Razorpay payments or
-the checkout popup, Razorpay's real delivery timing and retry schedule, the create-order endpoint, or 100 real
-browser sessions. Results reflect a free-tier database.
+**What test 7 simulates:** 100 students whose payments confirm at the same moment, plus 40 concurrent deliveries for one student and one student paying twice, sent as correctly signed webhooks to the real endpoint. Students and unpaid payments are created directly in the database. Signature checks, deduplication, locking,`fulfill_payment` and the unique indexes all run for real. **What it does not simulate:** real Razorpay payments or the checkout popup, Razorpay's real delivery timing and retry schedule, the create-order endpoint, or 100 real browser sessions. Results reflect a free-tier database and a local development server.
 
 ## Decisions and limitations
 - Every Buy click creates a new Razorpay order (Razorpay's docs disagree on reusing an order after a failure).
 - A student whose access was revoked can buy the course again.
+- Register shows a clear "already registered" message, which reveals which emails have accounts; a production system would respond generically.
 - Email confirmation is off for the demo. There are no refunds, coupons or email notifications.
-- Admin lists are capped (200 users, 200 enrollments, 500 payments).
+- Recovery of stuck payments is manual (admin button) plus Razorpay's webhook retries; there is no scheduled reconcile job.
+- Admin lists are capped (200 users, 200 enrollments, 500 payments) and are not paginated.
+- Migrations are applied by hand, not with the Supabase CLI, and there is no automated CI test run.
 - Cache Components is disabled: every page is per-user and must never be cached or shared.
 
 ## AI and tools
-I used Claude (Anthropic) throughout: for discussing the design, drafting the
-schema and SQL functions, the API routes, the admin pages and the test scripts, and for debugging. I ran, tested
-and reviewed the code, and fixed mismatches between the drafts and my actual database. Docs used: Razorpay,
-Supabase and Next.js.
+I used Claude (Anthropic) throughout: for discussing the design, drafting the schema and SQL functions, the API routes, the admin pages and the test scripts, and for debugging. I ran, tested and reviewed the code, and fixed mismatches between the drafts and my actual database. Docs used: Razorpay,Supabase and Next.js.
