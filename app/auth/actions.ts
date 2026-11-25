@@ -3,9 +3,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
-// On failure these return an error for the form to display (instead of putting it in the URL).
-// On success, redirect() ends the action and sends the student to their account.
-
 export async function register(_prev: unknown, formData: FormData) {
   const email = String(formData.get('email') ?? '').trim()
   const fullName = String(formData.get('full_name') ?? '').trim()
@@ -19,7 +16,6 @@ export async function register(_prev: unknown, formData: FormData) {
   })
 
   if (error) {
-    // send back what they typed (never the password) so the form can refill it
     return { error: error.message, email, full_name: fullName }
   }
 

@@ -4,9 +4,9 @@ import { getCurrentUser } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 
 function signatureMatches(expected: string, received: string) {
-  const a = Buffer.from(expected, 'hex')
+  const a = Buffer.from(expected, 'hex')//converts hexadecimal strings into byte buffers
   const b = Buffer.from(received, 'hex')
-  return a.length === b.length && crypto.timingSafeEqual(a, b)
+  return a.length === b.length && crypto.timingSafeEqual(a, b)//compares them in a way designed to avoid timing-based information leaks
 }
 
 export async function POST(req: Request) {
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   }
 
-  // 3. verify Razorpay's signature
+  // 3. verify Razorpay's signature, using sha256 hashing algo
   const expected = crypto
     .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
     .update(`${orderId}|${paymentId}`)
@@ -60,9 +60,6 @@ export async function POST(req: Request) {
 
   if (error) {
     console.error('fulfill_payment failed', error)
-
-    // the signature was valid, so Razorpay really took the money.
-    // make that visible instead of leaving it as "not completed".
     await supabaseAdmin
       .from('payments')
       .update({

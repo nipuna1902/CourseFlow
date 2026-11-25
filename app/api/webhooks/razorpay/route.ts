@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 
-// errors where retrying can never help (Razorpay should stop sending)
+//errors where retrying can never help (Razorpay should stop sending)
 class NoRetryError extends Error { }
 
 function signatureMatches(rawBody: string, received: string) {
